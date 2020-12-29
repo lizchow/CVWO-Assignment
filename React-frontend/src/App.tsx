@@ -63,7 +63,6 @@ function App() {
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = React.useState(false);
   const [checked, setChecked] = useState<number[]>([]);
-  const [checkedLen, setCheckedLen] = useState(0);
   const [newItem, setNewItem] = useState<Todo>({
     id: 0,
     title: "",
@@ -89,10 +88,10 @@ function App() {
             .filter((todo: Todo) => todo.done)
             .map((todo: Todo) => todo.id)
         );
-        setCheckedLen(checked.length);
       })
       .catch((error) => console.log(error));
   }
+
   function getTags() {
     axios
       .get("/api/v1/tags")
@@ -102,10 +101,10 @@ function App() {
       })
       .catch((error) => console.log(error));
   }
-  function getSelectedCategory(cat_id: number) {
-    if (cat_id !== 0) {
+  function getSelectedTag(tag_id: number) {
+    if (tag_id !== 0) {
       axios
-        .get(`/api/v1/tags/${cat_id - 1}`)
+        .get(`/api/v1/tags/${tag_id - 1}`)
         .then((res) => {
           setTodos(res.data);
         })
@@ -148,7 +147,6 @@ function App() {
         const newChecked = res.data.done
           ? update(checked, { $splice: [[0, 0, res.data.id]] })
           : update(checked, { $splice: [[checkIndex, 1]] });
-        setCheckedLen(res.data.done ? checkedLen + 1 : checkedLen - 1);
         setChecked(newChecked);
       })
       .catch((error) => console.log(error));
@@ -189,7 +187,6 @@ function App() {
     const newTodos = multisplice(todos, checked);
     setTodos(newTodos);
     setChecked([]);
-    setCheckedLen(0);
   }
 
   useEffect(() => {
@@ -204,7 +201,7 @@ function App() {
         open={open}
         handleDrawerOpen={handleDrawerOpen}
         handleDrawerClose={handleDrawerClose}
-        getSelectedCategory={getSelectedCategory}
+        getSelectedTag={getSelectedTag}
       />
       <main
         className={clsx(classes.content, {
@@ -216,7 +213,7 @@ function App() {
           todos={todos}
           tags={tags}
           inputValue={inputValue}
-          checkedLen={checkedLen}
+          checkedLen={checked.length}
           newItem={newItem}
           InputChange={handleChange}
           createTodo={createTodo}

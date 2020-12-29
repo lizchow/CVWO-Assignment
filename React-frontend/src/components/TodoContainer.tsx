@@ -70,6 +70,17 @@ function TodosContainer(Props: ContainerProps) {
       id
     );
   }
+  function updateTodo(
+    e: ChangeEvent<HTMLInputElement>,
+    id: number,
+    title: string,
+    tags: string[]
+  ) {
+    Props.updateTodo(e, id);
+    setSelectedId(id);
+    setSelectedTitle(title);
+    setSelectedTags(tags);
+  }
   function deleteTodo() {
     Props.deleteTodo();
     setSelectedId(-1);
@@ -80,7 +91,7 @@ function TodosContainer(Props: ContainerProps) {
       setSelectedTags(Props.newItem.tag_list);
       setSelectedTitle(Props.newItem.title);
     }
-  }, [Props.newItem, Props.checkedLen]);
+  }, [Props.newItem]);
 
   return (
     <Grid container spacing={3}>
@@ -130,7 +141,9 @@ function TodosContainer(Props: ContainerProps) {
               <ListItemIcon>
                 <Checkbox
                   edge="start"
-                  onChange={(e) => Props.updateTodo(e, todo.id)}
+                  onChange={(e) =>
+                    updateTodo(e, todo.id, todo.title, todo.tag_list)
+                  }
                   color="primary"
                   checked={todo.done}
                 />

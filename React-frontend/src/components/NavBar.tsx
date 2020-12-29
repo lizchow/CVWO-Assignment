@@ -27,7 +27,7 @@ interface Tag {
 interface ContainerProps {
   tags: Tag[];
   open: boolean;
-  getSelectedCategory: (cat_id: number) => void;
+  getSelectedTag: (cat_id: number) => void;
   handleDrawerOpen: () => void;
   handleDrawerClose: () => void;
 }
@@ -83,7 +83,7 @@ function NavBar(Props: ContainerProps) {
 
   const handleListItemClick = (index: number) => {
     setSelectedIndex(index);
-    Props.getSelectedCategory(index);
+    Props.getSelectedTag(index);
   };
 
   return (
