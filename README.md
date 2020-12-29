@@ -3,3 +3,7 @@
 ## Elizabeth Chow Ting San
 
 ### A0192318A
+
+To run on localhost:
+
+    heroku local -f Procfile.dev
