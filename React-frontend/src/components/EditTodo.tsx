@@ -7,23 +7,25 @@ import Grid from "@material-ui/core/Grid";
 import Chip from "@material-ui/core/Chip";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import DateFnsUtils from '@date-io/date-fns';
+import {
+  MuiPickersUtilsProvider,
+  KeyboardDatePicker,
+} from '@material-ui/pickers';
+import { Tag, Todo, NewTodo } from "../Types";
+import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
 
-interface Tag {
-  id: number;
-  name: string;
-  taggings_count: number;
+interface inputChangeParams {
+  change: boolean,
+  inputTags: string[],
+  inputTitle: string,
+  inputDate: Date | null
 }
 
-interface Todo {
-  title: string;
-  tag_list: string[];
-}
 interface EditProps {
-  editTodo: (data: Todo, id: number) => void;
+  editTodo: (data: NewTodo, id: number) => void;
   tags: Tag[];
-  ItemId: number;
-  ItemTitle: string;
-  ItemTags: string[];
+  selectedItem: Todo;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -38,51 +40,67 @@ const useStyles = makeStyles((theme: Theme) =>
 
 function EditForm(Props: EditProps) {
   const [inputError, setInputError] = useState(false);
-  const [tagChange, setTagChange] = useState(false);
-  const [titleChange, setTitleChange] = useState(false);
-  const [inputTitle, setInputTitle] = useState("");
-  const [inputTags, setInputTags] = useState<string[]>([]);
-  const { handleSubmit, register } = useForm<Todo>();
+  const [inputChange, setInputChange] = useState<inputChangeParams>({change: false, inputTags: [], inputTitle: '', inputDate: null})
+  const { handleSubmit, register } = useForm<NewTodo>();
   const classes = useStyles();
 
   let history = useHistory();
-
+  
   function ValidateInput(e: ChangeEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
-    setTitleChange(true);
-    setInputTitle(target.value);
+    setInputChange((prevState) => ({
+      ...prevState,
+      change: true,
+      inputTitle: target.value
+    }));
     if (target.value.trim() === "") {
       setInputError(true);
     } else {
       setInputError(false);
     }
   }
-  function handleTagChange(value: string[]) {
-    setTagChange(true);
-    setInputTags(value);
+  function handleDateChange(date: MaterialUiPickersDate | null) {
+    setInputChange((prevState) => ({
+      ...prevState,
+      change: true,
+      inputDate: date
+    }));
   }
-  function onSubmit(data: Todo) {
-    //console.log(data);
-    setTagChange(false);
-    setTitleChange(false);
+
+  function handleTagChange(value: string[]) {
+    setInputChange((prevState) => ({
+      ...prevState,
+      change: true,
+      inputTags: value
+    }));
+  }
+  function onSubmit(data: NewTodo) {
+    setInputChange((prevState) => ({
+      ...prevState,
+      change: false
+    }));
     Props.editTodo(
       {
         title: data.title.trim(),
-        tag_list: inputTags,
+        tag_list: inputChange.inputTags,
+        date: inputChange.inputDate
       },
-      Props.ItemId
+      Props.selectedItem.id
     );
     history.push("/");
   }
 
   useEffect(() => {
-    setInputTitle(Props.ItemTitle);
-    setInputTags(Props.ItemTags);
-    setTitleChange(false);
-    setTagChange(false);
-  }, [Props.ItemId]);
+    setInputChange((prevState) => ({
+      ...prevState,
+      change: false,
+      inputTitle: Props.selectedItem.title,
+      inputTags: Props.selectedItem.tag_list,
+      inputDate: Props.selectedItem.dueDate
+    }));
+  }, [Props.selectedItem]);
 
-  if (Props.ItemId === -1) {
+  if (Props.selectedItem.id=== -1) {
     return (
       <div>
         <h1>Select an item.</h1>
@@ -96,7 +114,7 @@ function EditForm(Props: EditProps) {
           <Grid item xs>
             <Grid container justify="flex-end">
               <Button
-                disabled={!(tagChange || titleChange)}
+                disabled={!inputChange.change}
                 type="submit"
                 variant="contained"
                 color="primary"
@@ -114,7 +132,7 @@ function EditForm(Props: EditProps) {
               name="title"
               onChange={ValidateInput}
               label="Title"
-              value={!titleChange ? Props.ItemTitle : inputTitle}
+              value={inputChange.inputTitle}
               error={inputError}
               helperText={inputError ? "*Required" : ""}
               size="medium"
@@ -124,12 +142,27 @@ function EditForm(Props: EditProps) {
             />
           </Grid>
           <Grid item xs>
+            <MuiPickersUtilsProvider utils={DateFnsUtils}>
+              <KeyboardDatePicker
+                label="Due Date"
+                value={inputChange.inputDate }
+                disablePast
+                onChange={handleDateChange}
+                variant="inline"
+                margin="normal"
+                KeyboardButtonProps={{
+                  'aria-label': 'change date',
+                }}
+              />
+            </MuiPickersUtilsProvider>
+          </Grid>
+          <Grid item xs>
             <div className={classes.root}>
               <Autocomplete
                 multiple
                 id="tags-filled"
                 options={Props.tags.map((tag) => tag.name)}
-                value={!tagChange ? Props.ItemTags : inputTags}
+                value={inputChange.inputTags}
                 onChange={(_, value) => handleTagChange(value)}
                 freeSolo
                 renderTags={(value: string[], getTagProps) =>

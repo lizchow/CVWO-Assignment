@@ -1,12 +1,12 @@
 class TagsController < ApplicationController
   def index
-    tags = ActsAsTaggableOn::Tag.all
+    tags = ActsAsTaggableOn::Tag.all.order("name ASC")
     render json: tags
   end
 
   def show
     tag = ActsAsTaggableOn::Tag.find(params[:id])
-    todos = Todo.tagged_with(tag.name)
+    todos = Todo.tagged_with(tag.name).order("created_at DESC")
     render json: todos
   end 
 

@@ -1,4 +1,5 @@
 import React, { KeyboardEvent, ChangeEvent, useState, useEffect } from "react";
+
 import { createStyles, Theme, makeStyles } from "@material-ui/core/styles";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
@@ -8,27 +9,9 @@ import Checkbox from "@material-ui/core/Checkbox";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
 import AddIcon from "@material-ui/icons/Add";
+import Divider from "@material-ui/core/Divider";
 import EditForm from "./EditTodo";
-
-interface Todo {
-  id: number;
-  title: string;
-  done: boolean;
-  tag_list: string[];
-}
-interface NewTodo {
-  title: string;
-  tag_list: string[];
-}
-interface TodoNew {
-  title: string;
-  tag_list: string;
-}
-interface Tag {
-  id: number;
-  name: string;
-  taggings_count: number;
-}
+import { Tag, Todo, NewTodo } from "../Types";
 
 interface ContainerProps {
   todos: Todo[];
@@ -38,9 +21,9 @@ interface ContainerProps {
   newItem: Todo;
   InputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   createTodo: (e: KeyboardEvent<HTMLInputElement>) => void;
-  updateTodo: (e: ChangeEvent<HTMLInputElement>, id: number) => void;
+  toggleTodo: (e: ChangeEvent<HTMLInputElement>, id: number) => void;
   deleteTodo: () => void;
-  editTodo: (data: TodoNew, id: number) => void;
+  editTodo: (data: NewTodo, id: number) => void;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -50,47 +33,98 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   })
 );
-
+const initialState: Todo = {
+  id: -1,
+  title: "",
+  tag_list: [],
+  done: false,
+  dueDate: null,
+};
 function TodosContainer(Props: ContainerProps) {
   const classes = useStyles();
-  const [selectedId, setSelectedId] = useState(-1);
-  const [selectedTitle, setSelectedTitle] = useState("");
-  const [selectedTag, setSelectedTags] = useState<string[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Todo>(initialState);
 
-  function handleToggle(id: number, title: string, tags: string[]) {
-    setSelectedId(id);
-    setSelectedTitle(title);
-    setSelectedTags(tags);
+  /**
+   * Description: Change the selected item when the user clicks on the items
+   * @param id
+   * @param title
+   * @param tags
+   * @param date
+   */
+  function handleToggleItem(
+    id: number,
+    title: string,
+    tags: string[],
+    date: Date | null
+  ) {
+    setSelectedItem((prevState) => ({
+      ...prevState,
+      id: id,
+      title: title,
+      tag_list: tags,
+      dueDate: date,
+    }));
   }
+
+  /**
+   * Description: Update the todo attributes(title, tags and duedate) when the user changes it.
+   * @param data
+   * @param id
+   */
   function editTodo(data: NewTodo, id: number) {
-    setSelectedTitle(data.title);
-    setSelectedTags(data.tag_list);
+    setSelectedItem((prevState) => ({
+      ...prevState,
+      title: data.title,
+      tag_list: data.tag_list,
+      dueDate: data.date,
+    }));
     Props.editTodo(
-      { title: data.title, tag_list: data.tag_list.join(",") },
+      { title: data.title, tag_list: data.tag_list, date: data.date },
       id
     );
   }
-  function updateTodo(
+
+  /**
+   * Description: Update the todo when user checks/unchecks the box.
+   * @param e
+   * @param id
+   * @param title
+   * @param tags
+   */
+  function toggleTodo(
     e: ChangeEvent<HTMLInputElement>,
     id: number,
     title: string,
     tags: string[]
   ) {
-    Props.updateTodo(e, id);
-    setSelectedId(id);
-    setSelectedTitle(title);
-    setSelectedTags(tags);
+    Props.toggleTodo(e, id);
+    setSelectedItem((prevState) => ({
+      ...prevState,
+      id: id,
+      title: title,
+      tag_list: tags,
+    }));
   }
+
+  /**
+   * Description: Delete the selected todos.
+   */
   function deleteTodo() {
     Props.deleteTodo();
-    setSelectedId(-1);
+    setSelectedItem((prevState) => ({
+      ...prevState,
+      id: -1,
+    }));
   }
+
   useEffect(() => {
-    if (Props.newItem.id !== 0) {
-      setSelectedId(Props.newItem.id);
-      setSelectedTags(Props.newItem.tag_list);
-      setSelectedTitle(Props.newItem.title);
-    }
+    setSelectedItem((prevState) => ({
+      ...prevState,
+      id: Props.newItem.id,
+      title: Props.newItem.title,
+      tag_list: Props.newItem.tag_list,
+      dueDate: Props.newItem.dueDate,
+    }));
   }, [Props.newItem]);
 
   return (
@@ -100,6 +134,9 @@ function TodosContainer(Props: ContainerProps) {
         xs={6}
         style={{ borderRight: "0.1em solid grey", padding: "0.5em" }}
       >
+        <Grid item>
+          <Divider />
+        </Grid>
         <div className={classes.margin}>
           <Grid container spacing={1} alignItems="flex-end">
             <Grid item style={{ maxWidth: 60 }}>
@@ -135,14 +172,21 @@ function TodosContainer(Props: ContainerProps) {
             <ListItem
               key={todo.id}
               button
-              onClick={() => handleToggle(todo.id, todo.title, todo.tag_list)}
-              selected={selectedId === todo.id}
+              onClick={() =>
+                handleToggleItem(
+                  todo.id,
+                  todo.title,
+                  todo.tag_list,
+                  todo.dueDate
+                )
+              }
+              selected={selectedItem.id === todo.id}
             >
               <ListItemIcon>
                 <Checkbox
                   edge="start"
                   onChange={(e) =>
-                    updateTodo(e, todo.id, todo.title, todo.tag_list)
+                    toggleTodo(e, todo.id, todo.title, todo.tag_list)
                   }
                   color="primary"
                   checked={todo.done}
@@ -172,9 +216,7 @@ function TodosContainer(Props: ContainerProps) {
         <EditForm
           editTodo={editTodo}
           tags={Props.tags}
-          ItemId={selectedId}
-          ItemTitle={selectedTitle}
-          ItemTags={selectedTag}
+          selectedItem={selectedItem}
         />
       </Grid>
     </Grid>

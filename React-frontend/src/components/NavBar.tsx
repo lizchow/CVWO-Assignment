@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, {  KeyboardEvent, ChangeEvent, useEffect, useState } from "react";
 import {
   makeStyles,
   useTheme,
   Theme,
   createStyles,
+  fade,
 } from "@material-ui/core/styles";
 import clsx from "clsx";
 import Drawer from "@material-ui/core/Drawer";
@@ -19,15 +20,18 @@ import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import InputBase from '@material-ui/core/InputBase';
+import SearchIcon from '@material-ui/icons/Search';
 
-interface Tag {
-  id: number;
-  name: string;
-}
+import { Tag } from "../Types";
+
 interface ContainerProps {
   tags: Tag[];
   open: boolean;
-  getSelectedTag: (cat_id: number) => void;
+  defLen: number;
+  getSelectedTag: (tag_id: number, tag_name: string) => void;
+  searchTodos: (query: string) => void;
   handleDrawerOpen: () => void;
   handleDrawerClose: () => void;
 }
@@ -73,19 +77,73 @@ const useStyles = makeStyles((theme: Theme) =>
       ...theme.mixins.toolbar,
       justifyContent: "flex-end",
     },
+    search: {
+      position: 'relative',
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: fade(theme.palette.common.white, 0.15),
+      '&:hover': {
+        backgroundColor: fade(theme.palette.common.white, 0.25),
+      },
+      marginRight: theme.spacing(2),
+      marginLeft: 0,
+      width: '100%',
+      [theme.breakpoints.up('sm')]: {
+        marginLeft: theme.spacing(3),
+        width: 'auto',
+      },
+    },
+    searchIcon: {
+      padding: theme.spacing(0, 2),
+      height: '100%',
+      position: 'absolute',
+      pointerEvents: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    inputRoot: {
+      color: 'inherit',
+    },
+    inputInput: {
+      padding: theme.spacing(1, 1, 1, 0),
+      // vertical padding + font size from searchIcon
+      paddingLeft: `calc(1em + ${theme.spacing(4)}px)`,
+      transition: theme.transitions.create('width'),
+      width: '100%',
+      [theme.breakpoints.up('md')]: {
+        width: '40ch',
+      },
+    },
   })
 );
 function NavBar(Props: ContainerProps) {
   const classes = useStyles();
   const theme = useTheme();
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleListItemClick = (index: number) => {
+
+  const handleListItemClick = (index: number, tag_name: string) => {
     setSelectedIndex(index);
-    Props.getSelectedTag(index);
+    Props.getSelectedTag(index, tag_name);
   };
 
+  const handleQueryChange=(e: ChangeEvent<HTMLInputElement>) =>{
+    const target = e.target as HTMLInputElement;
+    setSearchQuery(target.value);
+  }
+
+  const handleSearch = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim() !== ""){
+      setSearchQuery("");
+      setSelectedIndex(-2);
+      Props.searchTodos(searchQuery);
+    }
+  }
+  useEffect(() => {
+    
+  },[Props.tags])
   return (
     <div className={classes.root}>
       <CssBaseline />
@@ -108,6 +166,22 @@ function NavBar(Props: ContainerProps) {
           <Typography variant="h4" noWrap>
             Todo App
           </Typography>
+          <div className={classes.search}>
+            <div className={classes.searchIcon}>
+              <SearchIcon />
+            </div>
+            <InputBase
+              placeholder="Search…"
+              classes={{
+                root: classes.inputRoot,
+                input: classes.inputInput,
+              }}
+              inputProps={{ 'aria-label': 'search' }}
+              value={searchQuery}
+              onChange={handleQueryChange}
+              onKeyPress={handleSearch}
+            />
+          </div>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -134,10 +208,13 @@ function NavBar(Props: ContainerProps) {
             <ListItem
               button
               key={text}
-              selected={selectedIndex === 0}
-              onClick={() => handleListItemClick(0)}
+              selected={selectedIndex === -1}
+              onClick={() => handleListItemClick(-1, "")}
             >
               <ListItemText primary={text} />
+              <ListItemSecondaryAction>
+                {Props.defLen}
+              </ListItemSecondaryAction>
             </ListItem>
           ))}
         </List>
@@ -147,10 +224,13 @@ function NavBar(Props: ContainerProps) {
             <ListItem
               button
               key={tag.name}
-              selected={selectedIndex === tag.id + 1}
-              onClick={() => handleListItemClick(tag.id + 1)}
+              selected={selectedIndex === tag.id}
+              onClick={() => handleListItemClick(tag.id, tag.name)}
             >
               <ListItemText primary={tag.name} />
+              <ListItemSecondaryAction>
+                {tag.taggings_count}
+              </ListItemSecondaryAction>
             </ListItem>
           ))}
         </List>
