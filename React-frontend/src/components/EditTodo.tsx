@@ -7,19 +7,19 @@ import Grid from "@material-ui/core/Grid";
 import Chip from "@material-ui/core/Chip";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
-import DateFnsUtils from '@date-io/date-fns';
+import DateFnsUtils from "@date-io/date-fns";
 import {
   MuiPickersUtilsProvider,
   KeyboardDatePicker,
-} from '@material-ui/pickers';
+} from "@material-ui/pickers";
 import { Tag, Todo, NewTodo } from "../Types";
 import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
 
 interface inputChangeParams {
-  change: boolean,
-  inputTags: string[],
-  inputTitle: string,
-  inputDate: Date | null
+  change: boolean;
+  inputTags: string[];
+  inputTitle: string;
+  inputDate: Date | null;
 }
 
 interface EditProps {
@@ -40,18 +40,27 @@ const useStyles = makeStyles((theme: Theme) =>
 
 function EditForm(Props: EditProps) {
   const [inputError, setInputError] = useState(false);
-  const [inputChange, setInputChange] = useState<inputChangeParams>({change: false, inputTags: [], inputTitle: '', inputDate: null})
+  const [inputChange, setInputChange] = useState<inputChangeParams>({
+    change: false,
+    inputTags: [],
+    inputTitle: "",
+    inputDate: null,
+  });
   const { handleSubmit, register } = useForm<NewTodo>();
   const classes = useStyles();
 
   let history = useHistory();
-  
+
+  /**
+   * Description: Check whether the task input is empty
+   * @param e
+   */
   function ValidateInput(e: ChangeEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
     setInputChange((prevState) => ({
       ...prevState,
       change: true,
-      inputTitle: target.value
+      inputTitle: target.value,
     }));
     if (target.value.trim() === "") {
       setInputError(true);
@@ -59,31 +68,45 @@ function EditForm(Props: EditProps) {
       setInputError(false);
     }
   }
+
+  /**
+   * Description: update local date variable
+   * @param date 
+   */
   function handleDateChange(date: MaterialUiPickersDate | null) {
     setInputChange((prevState) => ({
       ...prevState,
       change: true,
-      inputDate: date
+      inputDate: date,
     }));
   }
 
+  /**
+   * Description: update local tag_name variable
+   * @param value 
+   */
   function handleTagChange(value: string[]) {
     setInputChange((prevState) => ({
       ...prevState,
       change: true,
-      inputTags: value
+      inputTags: value,
     }));
   }
+
+  /**
+   * Description: Update the selected item
+   * @param data 
+   */
   function onSubmit(data: NewTodo) {
     setInputChange((prevState) => ({
       ...prevState,
-      change: false
+      change: false,
     }));
     Props.editTodo(
       {
         title: data.title.trim(),
         tag_list: inputChange.inputTags,
-        date: inputChange.inputDate
+        date: inputChange.inputDate,
       },
       Props.selectedItem.id
     );
@@ -96,11 +119,11 @@ function EditForm(Props: EditProps) {
       change: false,
       inputTitle: Props.selectedItem.title,
       inputTags: Props.selectedItem.tag_list,
-      inputDate: Props.selectedItem.dueDate
+      inputDate: Props.selectedItem.dueDate,
     }));
   }, [Props.selectedItem]);
 
-  if (Props.selectedItem.id=== -1) {
+  if (Props.selectedItem.id < 0) {
     return (
       <div>
         <h1>Select an item.</h1>
@@ -145,13 +168,14 @@ function EditForm(Props: EditProps) {
             <MuiPickersUtilsProvider utils={DateFnsUtils}>
               <KeyboardDatePicker
                 label="Due Date"
-                value={inputChange.inputDate }
+                value={inputChange.inputDate}
                 disablePast
                 onChange={handleDateChange}
                 variant="inline"
                 margin="normal"
+                minDateMessage="Overdue!"
                 KeyboardButtonProps={{
-                  'aria-label': 'change date',
+                  "aria-label": "change date",
                 }}
               />
             </MuiPickersUtilsProvider>

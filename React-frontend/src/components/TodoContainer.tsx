@@ -12,15 +12,17 @@ import AddIcon from "@material-ui/icons/Add";
 import Divider from "@material-ui/core/Divider";
 import EditForm from "./EditTodo";
 import { Tag, Todo, NewTodo } from "../Types";
+import EventIcon from "@material-ui/icons/Event";
+import Chip from "@material-ui/core/Chip";
+import { ListItemSecondaryAction } from "@material-ui/core";
 
 interface ContainerProps {
   todos: Todo[];
-  inputValue: string;
   tags: Tag[];
   checkedLen: number;
   newItem: Todo;
-  InputChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  createTodo: (e: KeyboardEvent<HTMLInputElement>) => void;
+  isQuery: boolean;
+  createTodo: (title: string) => void;
   toggleTodo: (e: ChangeEvent<HTMLInputElement>, id: number) => void;
   deleteTodo: () => void;
   editTodo: (data: NewTodo, id: number) => void;
@@ -43,7 +45,18 @@ const initialState: Todo = {
 function TodosContainer(Props: ContainerProps) {
   const classes = useStyles();
   const [selectedItem, setSelectedItem] = useState<Todo>(initialState);
-
+  const [inputValue, setInputValue] = useState("");
+  function createTodo(e: KeyboardEvent<HTMLInputElement>) {
+    const target = e.target as HTMLInputElement;
+    if (e.key === "Enter" && target.value.trim() !== "") {
+      setInputValue("");
+      Props.createTodo(target.value.trim());
+    }
+  }
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    const target = e.target as HTMLInputElement;
+    setInputValue(target.value);
+  }
   /**
    * Description: Change the selected item when the user clicks on the items
    * @param id
@@ -78,10 +91,7 @@ function TodosContainer(Props: ContainerProps) {
       tag_list: data.tag_list,
       dueDate: data.date,
     }));
-    Props.editTodo(
-      { title: data.title, tag_list: data.tag_list, date: data.date },
-      id
-    );
+    Props.editTodo(data, id);
   }
 
   /**
@@ -117,6 +127,16 @@ function TodosContainer(Props: ContainerProps) {
     }));
   }
 
+  /**
+   * Description: Check whether the param date is past the current date
+   * @param date
+   */
+  function isDue(date: Date) {
+    var currentDate = new Date().setHours(0, 0, 0, 0);
+    var todoDate = new Date(date).setHours(0, 0, 0, 0);
+    return todoDate < currentDate;
+  }
+
   useEffect(() => {
     setSelectedItem((prevState) => ({
       ...prevState,
@@ -125,7 +145,7 @@ function TodosContainer(Props: ContainerProps) {
       tag_list: Props.newItem.tag_list,
       dueDate: Props.newItem.dueDate,
     }));
-  }, [Props.newItem]);
+  }, [Props.newItem, Props.isQuery]);
 
   return (
     <Grid container spacing={3}>
@@ -137,25 +157,30 @@ function TodosContainer(Props: ContainerProps) {
         <Grid item>
           <Divider />
         </Grid>
-        <div className={classes.margin}>
-          <Grid container spacing={1} alignItems="flex-end">
-            <Grid item style={{ maxWidth: 60 }}>
-              <AddIcon />
+        {!Props.isQuery ? (
+          <div className={classes.margin}>
+            <Grid container spacing={1} alignItems="flex-end">
+              <Grid item style={{ maxWidth: 60 }}>
+                <AddIcon />
+              </Grid>
+              <Grid item xs>
+                <TextField
+                  id="input"
+                  label="Add a Task"
+                  onKeyPress={createTodo}
+                  onChange={handleChange}
+                  value={inputValue}
+                  fullWidth={true}
+                  inputProps={{ maxLength: 50 }}
+                  multiline
+                />
+              </Grid>
             </Grid>
-            <Grid item xs>
-              <TextField
-                id="input"
-                label="Add a Task"
-                onKeyPress={Props.createTodo}
-                onChange={Props.InputChange}
-                value={Props.inputValue}
-                fullWidth={true}
-                inputProps={{ maxLength: 50 }}
-                multiline
-              />
-            </Grid>
-          </Grid>
-        </div>
+          </div>
+        ) : (
+          <div></div>
+        )}
+
         <Grid container justify="flex-end">
           <Button
             color="primary"
@@ -166,50 +191,67 @@ function TodosContainer(Props: ContainerProps) {
             Delete Selected Tasks
           </Button>
         </Grid>
-        {Props.todos.map((todo) => {
-          const labelId = `checkbox-list-label-${todo.id}`;
-          return (
-            <ListItem
-              key={todo.id}
-              button
-              onClick={() =>
-                handleToggleItem(
-                  todo.id,
-                  todo.title,
-                  todo.tag_list,
-                  todo.dueDate
-                )
-              }
-              selected={selectedItem.id === todo.id}
-            >
-              <ListItemIcon>
-                <Checkbox
-                  edge="start"
-                  onChange={(e) =>
-                    toggleTodo(e, todo.id, todo.title, todo.tag_list)
-                  }
-                  color="primary"
-                  checked={todo.done}
-                />
-              </ListItemIcon>
-              {todo.done ? (
-                <del>
+        {Props.todos.length === 0 ? (
+          <h1>No items found</h1>
+        ) : (
+          Props.todos.map((todo) => {
+            const labelId = `checkbox-list-label-${todo.id}`;
+            return (
+              <ListItem
+                key={todo.id}
+                button
+                onClick={() =>
+                  handleToggleItem(
+                    todo.id,
+                    todo.title,
+                    todo.tag_list,
+                    todo.dueDate
+                  )
+                }
+                selected={selectedItem.id === todo.id}
+                ContainerComponent="div"
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    edge="start"
+                    onChange={(e) =>
+                      toggleTodo(e, todo.id, todo.title, todo.tag_list)
+                    }
+                    color="primary"
+                    checked={todo.done}
+                  />
+                </ListItemIcon>
+                {todo.done ? (
+                  <del>
+                    <ListItemText
+                      id={labelId}
+                      primary={todo.title}
+                      style={{ wordWrap: "break-word" }}
+                    />
+                  </del>
+                ) : (
                   <ListItemText
                     id={labelId}
                     primary={todo.title}
                     style={{ wordWrap: "break-word" }}
                   />
-                </del>
-              ) : (
-                <ListItemText
-                  id={labelId}
-                  primary={todo.title}
-                  style={{ wordWrap: "break-word" }}
-                />
-              )}
-            </ListItem>
-          );
-        })}
+                )}
+                <ListItemSecondaryAction>
+                  {todo.dueDate ? (
+                    <Chip
+                      variant="outlined"
+                      icon={<EventIcon />}
+                      color={isDue(todo.dueDate) ? "secondary" : "primary"}
+                      label={todo.dueDate}
+                    />
+                  ) : (
+                    <div></div>
+                  )}
+                </ListItemSecondaryAction>
+              </ListItem>
+            );
+          })
+        )}
       </Grid>
 
       <Grid item xs={6}>

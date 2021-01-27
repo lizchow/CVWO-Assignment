@@ -1,7 +1,8 @@
 class TodosController < ApplicationController
   def index
     todos = Todo.order("created_at DESC")
-    render json: todos
+    sorted_todos = todos.select(&:dueDate).sort_by {|x| x.dueDate} + todos.reject(&:dueDate)
+    render json: sorted_todos
   end
 
   def create

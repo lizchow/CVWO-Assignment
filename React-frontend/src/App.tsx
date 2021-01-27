@@ -8,6 +8,7 @@ import TodosContainer from "./components/TodoContainer";
 import EditTagName from "./components/EditTagName";
 import clsx from "clsx";
 import { Todo, NewTodo, Tag } from "./Types";
+import { SettingsTwoTone } from "@material-ui/icons";
 interface changeTag {
   tagName: string;
 }
@@ -54,13 +55,14 @@ function App() {
   const classes = useStyles();
 
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [defLen, setDefLen] = useState(0);
+  const [totalLen, setTotalLen] = useState(0);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [inputValue, setInputValue] = useState("");
+
   const [open, setOpen] = React.useState(false);
   const [checkedItem, setCheckedItem] = useState<number[]>([]);
   const [newItem, setNewItem] = useState<Todo>(initialState);
   const [selectedTag, setSelectedTag] = useState({ id: -1, name: "All Tasks" });
+  const [isQuery, setIsQuery] = useState(false);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -80,7 +82,11 @@ function App() {
             .filter((todo: Todo) => todo.done)
             .map((todo: Todo) => todo.id)
         );
-        setDefLen(res.data.length);
+        setTotalLen(res.data.length);
+        setNewItem((prevState) => ({
+          ...prevState, 
+          initialState
+        }))
       })
       .catch((error) => console.log(error));
   }
@@ -94,6 +100,7 @@ function App() {
       .catch((error) => console.log(error));
   }
   function getSelectedTag(tag_id: number, tag_name: string) {
+    setIsQuery(false);
     setNewItem((prevState) => ({
       ...prevState,
       initialState,
@@ -117,13 +124,11 @@ function App() {
     }
   }
 
-  function createTodo(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      const target = e.target as HTMLInputElement;
+  function createTodo(title: string) {
       axios
         .post("/api/v1/todos", {
           todo: {
-            title: target.value,
+            title: title,
             done: false,
             tag_list: selectedTag.id >= 0 ? selectedTag.name : "",
           },
@@ -132,15 +137,12 @@ function App() {
           setNewItem(res.data);
           const newTodos = update(todos, { $splice: [[0, 0, res.data]] });
           setTodos(newTodos);
-          setInputValue("");
+          setTotalLen((prevState) => prevState + 1);
         })
         .catch((error) => console.log(error));
-    }
+    
   }
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    const target = e.target as HTMLInputElement;
-    setInputValue(target.value);
-  }
+  
   function toggleTodo(e: ChangeEvent<HTMLInputElement>, id: number) {
     const target = e.target as HTMLInputElement;
     axios
@@ -206,6 +208,7 @@ function App() {
     });
     const newTodos = multisplice(todos, checkedItem);
     setTodos(newTodos);
+    setTotalLen(newTodos.length);
     setCheckedItem([]);
   }
   function updateTag(data: changeTag) {
@@ -245,7 +248,7 @@ function App() {
       .get(`/api/v1/todos`)
       .then((res) => {
         const filterQuery = query.replace(/\s/g, "").toLowerCase();
-        const filteredTodos = res.data.filter((todo: Todo) =>
+        const filteredTodos: Todo[] = res.data.filter((todo: Todo) =>
           todo.title.replace(/\s/g, "").toLowerCase().includes(filterQuery)
         );
         setTodos(filteredTodos);
@@ -254,13 +257,20 @@ function App() {
           id: -2,
           name: "Search Query: " + query,
         }));
+        setCheckedItem(
+          filteredTodos
+            .filter((todo: Todo) => todo.done)
+            .map((todo: Todo) => todo.id)
+        );
+        setIsQuery(true);
       })
       .catch((err) => {
         console.log(err);
       });
   }
+  
   useEffect(() => {
-    getSelectedTag(selectedTag.id, selectedTag.name);
+    getTodos();
     getTags();
   }, []);
 
@@ -269,7 +279,7 @@ function App() {
       <NavBar
         tags={tags}
         open={open}
-        defLen={defLen}
+        defLen={totalLen}
         searchTodos={searchTodos}
         handleDrawerOpen={handleDrawerOpen}
         handleDrawerClose={handleDrawerClose}
@@ -289,10 +299,9 @@ function App() {
         <TodosContainer
           todos={todos}
           tags={tags}
-          inputValue={inputValue}
           checkedLen={checkedItem.length}
           newItem={newItem}
-          InputChange={handleChange}
+          isQuery={isQuery}
           createTodo={createTodo}
           deleteTodo={deleteTodo}
           toggleTodo={toggleTodo}
