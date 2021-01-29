@@ -4,7 +4,7 @@
 
 ### A0192318A
 
-###The app is hosted [here](https://liz-todo-app.herokuapp.com/).
+### The app is hosted [here](https://liz-todo-app.herokuapp.com/).
 
 To run on localhost:
 
