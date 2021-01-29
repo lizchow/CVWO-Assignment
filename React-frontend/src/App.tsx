@@ -103,7 +103,11 @@ function App() {
     setIsQuery(false);
     setNewItem((prevState) => ({
       ...prevState,
-      initialState,
+      id: initialState.id,
+      title: initialState.title,
+      done: initialState.done,
+      tag_list: initialState.tag_list,
+      dueDate: initialState.dueDate,
     }));
     if (tag_id >= 0) {
       setSelectedTag({ id: tag_id, name: tag_name });
@@ -134,7 +138,14 @@ function App() {
           },
         })
         .then((res) => {
-          setNewItem(res.data);
+          setNewItem((prevState) => ({
+            ...prevState,
+            id: res.data.id,
+            title: res.data.title,
+            done: res.data.done,
+            tag_list: res.data.tag_list,
+            dueDate: res.data.dueDate,
+          }));
           const newTodos = update(todos, { $splice: [[0, 0, res.data]] });
           setTodos(newTodos);
           setTotalLen((prevState) => prevState + 1);

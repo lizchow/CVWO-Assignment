@@ -7,7 +7,8 @@ class TagsController < ApplicationController
   def show
     tag = ActsAsTaggableOn::Tag.find(params[:id])
     todos = Todo.tagged_with(tag.name).order("created_at DESC")
-    render json: todos
+    sorted_todos = todos.select(&:dueDate).sort_by {|x| x.dueDate} + todos.reject(&:dueDate)
+    render json: sorted_todos
   end 
 
   def create
