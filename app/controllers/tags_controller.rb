@@ -18,8 +18,12 @@ class TagsController < ApplicationController
 
   def update
     tag = ActsAsTaggableOn::Tag.find(params[:id])
-    tag.update_attributes(tag_param)
-    render json: tag
+    if ActsAsTaggableOn::Tag.exists?(name: tag_param[:name])
+    	render json: {"error": true}
+    else 
+    	tag.update_attributes(tag_param)
+    	render json: tag
+    end
   end
 
   def destroy

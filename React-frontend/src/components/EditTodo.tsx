@@ -48,7 +48,6 @@ function EditForm(Props: EditProps) {
   });
   const { handleSubmit, register } = useForm<NewTodo>();
   const classes = useStyles();
-  const [selectedId, setSelectedId] = useState(-1);
   let history = useHistory();
 
   /**
@@ -121,10 +120,10 @@ function EditForm(Props: EditProps) {
       inputTags: Props.selectedItem.tag_list,
       inputDate: Props.selectedItem.dueDate,
     }));
-    setSelectedId(Props.selectedItem.id);
+
   }, [Props.selectedItem]);
 
-  if (selectedId< 0) {
+  if (Props.selectedItem.id< 0) {
     return (
       <div>
         <h1>Select an item.</h1>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent, KeyboardEvent } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
 import axios from "axios";
 import update from "immutability-helper";
@@ -8,9 +8,9 @@ import TodosContainer from "./components/TodoContainer";
 import EditTagName from "./components/EditTagName";
 import clsx from "clsx";
 import { Todo, NewTodo, Tag } from "./Types";
-import { SettingsTwoTone } from "@material-ui/icons";
+
 interface changeTag {
-  tagName: string;
+  tag_name: string;
 }
 const drawerWidth = 240;
 const useStyles = makeStyles((theme: Theme) =>
@@ -63,7 +63,7 @@ function App() {
   const [newItem, setNewItem] = useState<Todo>(initialState);
   const [selectedTag, setSelectedTag] = useState({ id: -1, name: "All Tasks" });
   const [isQuery, setIsQuery] = useState(false);
-
+  const [tagError, setTagError] = useState(false);
   const handleDrawerOpen = () => {
     setOpen(true);
   };
@@ -84,9 +84,9 @@ function App() {
         );
         setTotalLen(res.data.length);
         setNewItem((prevState) => ({
-          ...prevState, 
-          initialState
-        }))
+          ...prevState,
+          initialState,
+        }));
       })
       .catch((error) => console.log(error));
   }
@@ -101,6 +101,7 @@ function App() {
   }
   function getSelectedTag(tag_id: number, tag_name: string) {
     setIsQuery(false);
+    setTagError(false);
     setNewItem((prevState) => ({
       ...prevState,
       id: initialState.id,
@@ -129,15 +130,16 @@ function App() {
   }
 
   function createTodo(title: string) {
-      axios
-        .post("/api/v1/todos", {
-          todo: {
-            title: title,
-            done: false,
-            tag_list: selectedTag.id >= 0 ? selectedTag.name : "",
-          },
-        })
-        .then((res) => {
+    axios
+      .post("/api/v1/todos", {
+        todo: {
+          title: title,
+          done: false,
+          tag_list: selectedTag.id >= 0 ? selectedTag.name : "",
+        },
+      })
+      .then((res) => {
+        if (!res.data.error){
           setNewItem((prevState) => ({
             ...prevState,
             id: res.data.id,
@@ -149,11 +151,12 @@ function App() {
           const newTodos = update(todos, { $splice: [[0, 0, res.data]] });
           setTodos(newTodos);
           setTotalLen((prevState) => prevState + 1);
-        })
-        .catch((error) => console.log(error));
-    
+        }
+        
+      })
+      .catch((error) => console.log(error));
   }
-  
+
   function toggleTodo(e: ChangeEvent<HTMLInputElement>, id: number) {
     const target = e.target as HTMLInputElement;
     axios
@@ -210,7 +213,7 @@ function App() {
     }
   }
   function deleteTodo() {
-    console.log(checkedItem);
+    setTotalLen((prevState) => prevState - checkedItem.length);
     checkedItem.map((todo_id) => {
       return axios
         .delete(`/api/v1/todos/${todo_id}`)
@@ -219,17 +222,27 @@ function App() {
     });
     const newTodos = multisplice(todos, checkedItem);
     setTodos(newTodos);
-    setTotalLen(newTodos.length);
+    
     setCheckedItem([]);
   }
   function updateTag(data: changeTag) {
-    console.log(data);
+    //console.log(data);
     axios
       .put(`/api/v1/tags/${selectedTag.id}`, {
-        tag: { name: data.tagName.trim() },
+        tag: { name: data.tag_name.trim() },
       })
       .then((res) => {
-        console.log(res.data);
+        if (res.data.error){
+          setTagError(true);
+        }
+        else {
+          setTagError(false);
+          const tagIndex = tags.findIndex((x) => x.id === res.data.id);
+          const newTags = update(tags, {
+            [tagIndex]: { $set: res.data },
+          });
+          setTags(newTags);
+        }
       })
       .catch((error) => console.log(error));
   }
@@ -279,7 +292,7 @@ function App() {
         console.log(err);
       });
   }
-  
+
   useEffect(() => {
     getTodos();
     getTags();
@@ -306,6 +319,7 @@ function App() {
           selectedTag={selectedTag}
           updateTag={updateTag}
           deleteTag={deleteTag}
+          tagError={tagError}
         />
         <TodosContainer
           todos={todos}
